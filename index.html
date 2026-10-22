@@ -1,0 +1,905 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bài tập 28a - Game phản xạ nâng cao</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 25px 15px;
+    font-family: Arial, sans-serif;
+    color: #eaf2ff;
+    background: linear-gradient(135deg, #0f172a, #172554, #312e81);
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 8px;
+    color: #67e8f9;
+}
+
+.subtitle {
+    color: #cbd5e1;
+    margin-bottom: 22px;
+}
+
+.game {
+    max-width: 850px;
+    margin: auto;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid #334155;
+    border-radius: 18px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.stat {
+    padding: 12px 5px;
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+
+.stat span {
+    display: block;
+    margin-top: 7px;
+    font-size: 25px;
+    font-weight: bold;
+    color: #67e8f9;
+}
+
+#lives {
+    color: #fb7185;
+}
+
+#level {
+    color: #facc15;
+}
+
+#highScore {
+    color: #4ade80;
+}
+
+.timer-wrap {
+    height: 12px;
+    overflow: hidden;
+    background: #334155;
+    border-radius: 10px;
+    margin-bottom: 7px;
+}
+
+#timerBar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #22c55e, #a3e635);
+    transition: width 0.2s linear;
+}
+
+#timerText {
+    margin: 8px 0 14px;
+    color: #cbd5e1;
+}
+
+#arena {
+    width: 700px;
+    height: 450px;
+    max-width: 100%;
+    margin: auto;
+    position: relative;
+    overflow: hidden;
+    border: 3px solid #38bdf8;
+    border-radius: 12px;
+    background:
+        radial-gradient(circle at 20% 20%, #263c65 0, transparent 35%),
+        linear-gradient(145deg, #0f172a, #172554);
+    cursor: crosshair;
+    touch-action: manipulation;
+}
+
+#arena.locked {
+    cursor: not-allowed;
+}
+
+.target {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    user-select: none;
+    cursor: crosshair;
+    animation: appear 0.18s ease-out;
+    will-change: transform, opacity;
+}
+
+.target::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 2px solid rgba(255,255,255,0.55);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.normal {
+    color: white;
+    background: radial-gradient(circle at 30% 25%, #86efac, #16a34a 65%, #14532d);
+    border: 2px solid #bbf7d0;
+    box-shadow: 0 0 18px rgba(34,197,94,0.6);
+}
+
+.trap {
+    color: white;
+    background: radial-gradient(circle at 30% 25%, #fda4af, #dc2626 65%, #7f1d1d);
+    border: 2px solid #fecaca;
+    box-shadow: 0 0 18px rgba(239,68,68,0.7);
+}
+
+.bonus {
+    color: #422006;
+    background: radial-gradient(circle at 30% 25%, #fef08a, #eab308 65%, #a16207);
+    border: 2px solid #fef3c7;
+    box-shadow: 0 0 24px rgba(250,204,21,0.8);
+}
+
+.target.shrink {
+    animation: shrink 0.3s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes appear {
+    from { transform: scale(0.2); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shrink {
+    from { transform: scale(1); opacity: 1; }
+    to   { transform: scale(0.05); opacity: 0; }
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+button {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 9px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#startBtn {
+    color: #082f49;
+    background: #67e8f9;
+}
+
+#endBtn {
+    color: white;
+    background: #e11d48;
+}
+
+#restartBtn {
+    color: white;
+    background: #4f46e5;
+}
+
+#status {
+    min-height: 26px;
+    margin: 15px 0 5px;
+    color: #facc15;
+    font-weight: bold;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
+.legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dot {
+    width: 13px;
+    height: 13px;
+    display: inline-block;
+    border-radius: 50%;
+}
+
+.green { background: #22c55e; }
+.red { background: #ef4444; }
+.gold { background: #eab308; }
+
+.instructions {
+    margin-top: 18px;
+    text-align: left;
+    color: #cbd5e1;
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    body { padding: 12px 8px; }
+    .game { padding: 10px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    #arena { height: auto; aspect-ratio: 14 / 9; }
+    button { padding: 10px 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<h1>⚡ GAME KIỂM TRA TỐC ĐỘ PHẢN XẠ</h1>
+<p class="subtitle">Bài tập 28a – Phiên bản nâng cao</p>
+
+<div class="game">
+
+    <div class="stats">
+        <div class="stat">
+            SCORE
+            <span id="score">0</span>
+        </div>
+
+        <div class="stat">
+            LIVES
+            <span id="lives">❤️❤️❤️</span>
+        </div>
+
+        <div class="stat">
+            LEVEL
+            <span id="level">1</span>
+        </div>
+
+        <div class="stat">
+            HIGH SCORE
+            <span id="highScore">0</span>
+        </div>
+    </div>
+
+    <div class="timer-wrap">
+        <div id="timerBar"></div>
+    </div>
+    <p id="timerText">Thời gian còn lại: 30 giây</p>
+
+    <div id="arena" aria-label="Khu vực chơi game"></div>
+
+    <div class="legend">
+        <span><i class="dot green"></i> Mục tiêu thường: +1 điểm</span>
+        <span><i class="dot red"></i> Mục tiêu phạt: -2 điểm</span>
+        <span><i class="dot gold"></i> Mục tiêu thưởng: +3 điểm, +2 giây</span>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn">▶ BẮT ĐẦU</button>
+        <button id="endBtn" disabled>⏹ KẾT THÚC</button>
+        <button id="restartBtn">↻ CHƠI LẠI</button>
+    </div>
+
+    <div id="status" role="status" aria-live="polite">
+        Nhấn BẮT ĐẦU để thử tốc độ phản xạ!
+    </div>
+
+    <div class="instructions">
+        <b>Hướng dẫn chơi:</b><br>
+        • Click mục tiêu xanh để nhận 1 điểm.<br>
+        • Tránh mục tiêu đỏ vì sẽ bị trừ 2 điểm.<br>
+        • Click mục tiêu vàng trước khi nó biến mất để nhận 3 điểm và thêm 2 giây.<br>
+        • Bỏ lỡ mục tiêu vàng sẽ mất 1 mạng. Bạn có 3 mạng.<br>
+        • Cứ mỗi 10 điểm, cấp độ tăng và mục tiêu xuất hiện nhanh hơn.<br>
+        • Click liên tục vào vùng trống sẽ bị khóa thao tác trong 0,5 giây.
+    </div>
+
+</div>
+
+<script>
+"use strict";
+
+// =============================
+// 1. KHAI BÁO BIẾN VÀ TRẠNG THÁI
+// =============================
+
+const arena = document.getElementById("arena");
+const scoreDisplay = document.getElementById("score");
+const livesDisplay = document.getElementById("lives");
+const levelDisplay = document.getElementById("level");
+const highScoreDisplay = document.getElementById("highScore");
+const timerText = document.getElementById("timerText");
+const timerBar = document.getElementById("timerBar");
+const statusDisplay = document.getElementById("status");
+const startBtn = document.getElementById("startBtn");
+const endBtn = document.getElementById("endBtn");
+const restartBtn = document.getElementById("restartBtn");
+
+const GAME_DURATION = 30;
+const MAX_TIME = 45;
+const TARGET_SIZE = 46;
+
+let score = 0;
+let lives = 3;
+let level = 1;
+let timeLeft = GAME_DURATION;
+let running = false;
+let locked = false;
+
+let gameInterval = null;
+let spawnTimeout = null;
+let lockTimeout = null;
+let endTime = 0;
+let nextTargetId = 1;
+
+let targets = new Map();
+let emptyClicks = [];
+let activePointers = new Set();
+
+// =============================
+// 2. HIGH SCORE - ENCODE NHẸ
+// =============================
+
+// Base64 chỉ là mã hóa/che giấu dữ liệu nhẹ,
+// không phải biện pháp bảo mật thực sự.
+
+function encodeScore(value) {
+    return btoa("reflex-v1:" + value);
+}
+
+function decodeScore(value) {
+    try {
+        const decoded = atob(value);
+        const match = decoded.match(/^reflex-v1:(\d+)$/);
+        return match ? Number(match[1]) : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function getHighScore() {
+    try {
+        return decodeScore(
+            localStorage.getItem("reflexHighScore") || ""
+        );
+    } catch (error) {
+        return 0;
+    }
+}
+
+function saveHighScore() {
+    try {
+        if (score > getHighScore()) {
+            localStorage.setItem(
+                "reflexHighScore",
+                encodeScore(score)
+            );
+        }
+    } catch (error) {
+        // Game vẫn hoạt động nếu trình duyệt chặn localStorage.
+    }
+
+    highScoreDisplay.textContent = getHighScore();
+}
+
+highScoreDisplay.textContent = getHighScore();
+
+// =============================
+// 3. CẬP NHẬT GIAO DIỆN
+// =============================
+
+function updateUI() {
+    scoreDisplay.textContent = score;
+    livesDisplay.textContent =
+        "❤️".repeat(lives) + "🖤".repeat(3 - lives);
+    levelDisplay.textContent = level;
+    highScoreDisplay.textContent = getHighScore();
+}
+
+function updateTimer() {
+    timerText.textContent =
+        "Thời gian còn lại: " + timeLeft.toFixed(1) + " giây";
+
+    timerBar.style.width =
+        Math.max(0, (timeLeft / MAX_TIME) * 100) + "%";
+
+    if (timeLeft <= 5) {
+        timerBar.style.background = "#ef4444";
+    } else {
+        timerBar.style.background =
+            "linear-gradient(90deg, #22c55e, #a3e635)";
+    }
+}
+
+// =============================
+// 4. QUẢN LÝ BỘ ĐẾM THỜI GIAN
+// =============================
+
+function clearGameTimers() {
+    if (gameInterval !== null) {
+        clearInterval(gameInterval);
+        gameInterval = null;
+    }
+
+    if (spawnTimeout !== null) {
+        clearTimeout(spawnTimeout);
+        spawnTimeout = null;
+    }
+
+    if (lockTimeout !== null) {
+        clearTimeout(lockTimeout);
+        lockTimeout = null;
+    }
+
+    targets.forEach(target => {
+        clearTimeout(target.timeoutId);
+        clearTimeout(target.removeTimeoutId);
+    });
+}
+
+function removeAllTargets() {
+    targets.forEach(target => {
+        target.element.remove();
+    });
+
+    targets.clear();
+}
+
+function cleanupGame() {
+    clearGameTimers();
+    removeAllTargets();
+
+    locked = false;
+    emptyClicks = [];
+    activePointers.clear();
+    arena.classList.remove("locked");
+}
+
+// =============================
+// 5. THUẬT TOÁN CHỐNG CHỒNG LẤN
+// =============================
+
+function overlaps(x, y, size, other) {
+    const a = size / 2;
+    const b = other.size / 2;
+
+    const centerAX = x + a;
+    const centerAY = y + a;
+    const centerBX = other.x + b;
+    const centerBY = other.y + b;
+
+    const dx = centerAX - centerBX;
+    const dy = centerAY - centerBY;
+
+    // Giữ khoảng cách nhỏ giữa hai mục tiêu.
+    const minDistance = a + b + 5;
+
+    return dx * dx + dy * dy <
+           minDistance * minDistance;
+}
+
+function findPosition(size) {
+    const maxX = Math.max(0, arena.clientWidth - size);
+    const maxY = Math.max(0, arena.clientHeight - size);
+
+    // Thử nhiều tọa độ ngẫu nhiên để tránh chồng lấn.
+    for (let i = 0; i < 100; i++) {
+        const x = Math.random() * maxX;
+        const y = Math.random() * maxY;
+
+        let collision = false;
+
+        for (const target of targets.values()) {
+            if (overlaps(x, y, size, target)) {
+                collision = true;
+                break;
+            }
+        }
+
+        if (!collision) {
+            return { x, y };
+        }
+    }
+
+    return null;
+}
+
+// =============================
+// 6. ĐỘ KHÓ ĐỘNG
+// =============================
+
+function difficultyScale() {
+    return Math.pow(0.85, level - 1);
+}
+
+function updateLevel() {
+    const newLevel = Math.floor(Math.max(0, score) / 10) + 1;
+
+    if (newLevel > level) {
+        level = newLevel;
+        statusDisplay.textContent =
+            "🎉 LÊN CẤP " + level + "! Mục tiêu nhanh hơn!";
+    }
+
+    updateUI();
+}
+
+function awardPoints(points) {
+    score = Math.max(0, score + points);
+    updateLevel();
+    saveHighScore();
+    updateUI();
+}
+
+// =============================
+// 7. TẠO MỤC TIÊU
+// =============================
+
+function randomType() {
+    const number = Math.random();
+
+    if (number < 0.60) return "normal";
+    if (number < 0.85) return "trap";
+    return "bonus";
+}
+
+function spawnTarget() {
+    if (!running || locked) return;
+
+    // Giới hạn số lượng để khu vực chơi dễ quan sát.
+    if (targets.size >= 5) return;
+
+    const size = TARGET_SIZE;
+    const position = findPosition(size);
+
+    // Không tìm được vị trí phù hợp thì bỏ lượt sinh.
+    if (!position) return;
+
+    const type = randomType();
+    const element = document.createElement("div");
+    const id = nextTargetId++;
+
+    element.className = "target " + type;
+    element.dataset.id = id;
+    element.style.width = size + "px";
+    element.style.height = size + "px";
+    element.style.left = position.x + "px";
+    element.style.top = position.y + "px";
+
+    if (type === "normal") {
+        element.textContent = "+1";
+        element.setAttribute("aria-label", "Mục tiêu cộng một điểm");
+    } else if (type === "trap") {
+        element.textContent = "−2";
+        element.setAttribute("aria-label", "Mục tiêu phạt trừ hai điểm");
+    } else {
+        element.textContent = "★";
+        element.setAttribute("aria-label", "Mục tiêu thưởng");
+    }
+
+    const baseLifetime = type === "bonus" ? 1500 : 4000;
+    const lifetime = Math.max(
+        500,
+        baseLifetime * difficultyScale()
+    );
+
+    const target = {
+        id,
+        type,
+        element,
+        x: position.x,
+        y: position.y,
+        size,
+        timeoutId: null,
+        removeTimeoutId: null
+    };
+
+    targets.set(id, target);
+    arena.appendChild(element);
+
+    target.timeoutId = setTimeout(() => {
+        if (!targets.has(id)) return;
+
+        if (type === "bonus" && running) {
+            loseLife("Bỏ lỡ mục tiêu vàng! -1 mạng.");
+        }
+
+        removeTarget(id, true);
+    }, lifetime);
+}
+
+// =============================
+// 8. XÓA MỤC TIÊU
+// =============================
+
+function removeTarget(id, animate) {
+    const target = targets.get(id);
+    if (!target) return;
+
+    clearTimeout(target.timeoutId);
+
+    if (animate && target.element.isConnected) {
+        target.element.classList.add("shrink");
+
+        target.removeTimeoutId = setTimeout(() => {
+            target.element.remove();
+            targets.delete(id);
+        }, 300);
+    } else {
+        clearTimeout(target.removeTimeoutId);
+        target.element.remove();
+        targets.delete(id);
+    }
+}
+
+// =============================
+// 9. XỬ LÝ CLICK MỤC TIÊU
+// =============================
+
+arena.addEventListener("click", function(event) {
+    if (!running || locked) return;
+
+    const element = event.target.closest(".target");
+
+    if (!element || !arena.contains(element)) {
+        handleEmptyClick();
+        return;
+    }
+
+    const id = Number(element.dataset.id);
+    const target = targets.get(id);
+
+    if (!target) return;
+
+    // Xóa ngay khỏi Map để không thể tính điểm hai lần.
+    targets.delete(id);
+    clearTimeout(target.timeoutId);
+    clearTimeout(target.removeTimeoutId);
+    target.element.remove();
+
+    if (target.type === "normal") {
+        awardPoints(1);
+        statusDisplay.textContent = "🎯 Chính xác! +1 điểm";
+    } else if (target.type === "trap") {
+        awardPoints(-2);
+        statusDisplay.textContent = "💥 Trúng bẫy! -2 điểm";
+    } else if (target.type === "bonus") {
+        awardPoints(3);
+
+        timeLeft = Math.min(MAX_TIME, timeLeft + 2);
+        endTime += 2000;
+
+        updateTimer();
+
+        statusDisplay.textContent =
+            "⭐ Tuyệt vời! +3 điểm và +2 giây";
+    }
+});
+
+// =============================
+// 10. CHỐNG SPAM CLICK VÙNG TRỐNG
+// =============================
+
+function handleEmptyClick() {
+    const now = Date.now();
+
+    emptyClicks = emptyClicks.filter(
+        time => now - time < 1000
+    );
+
+    emptyClicks.push(now);
+
+    // Ba lần click hụt trong một giây sẽ bị khóa 0,5 giây.
+    if (emptyClicks.length >= 3) {
+        lockArena();
+    }
+}
+
+function lockArena() {
+    if (locked || !running) return;
+
+    locked = true;
+    arena.classList.add("locked");
+
+    // Phạt nhẹ điểm số do spam click.
+    awardPoints(-1);
+
+    statusDisplay.textContent =
+        "⛔ Spam click! Khu vực bị khóa 0,5 giây. -1 điểm";
+
+    lockTimeout = setTimeout(() => {
+        locked = false;
+        arena.classList.remove("locked");
+        emptyClicks = [];
+        lockTimeout = null;
+
+        if (running) {
+            statusDisplay.textContent = "Tiếp tục chơi!";
+        }
+    }, 500);
+}
+
+// Ngăn click đúp liên tiếp từ cùng một con trỏ.
+arena.addEventListener("pointerdown", function(event) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+    }
+
+    const pointerId = event.pointerId;
+
+    if (activePointers.has(pointerId)) {
+        event.preventDefault();
+        return;
+    }
+
+    activePointers.add(pointerId);
+});
+
+arena.addEventListener("pointerup", function(event) {
+    activePointers.delete(event.pointerId);
+});
+
+arena.addEventListener("pointercancel", function(event) {
+    activePointers.delete(event.pointerId);
+});
+
+// =============================
+// 11. MẤT MẠNG
+// =============================
+
+function loseLife(message) {
+    if (!running) return;
+
+    lives--;
+    updateUI();
+
+    statusDisplay.textContent = message;
+
+    if (lives <= 0) {
+        endGame("💔 Bạn đã hết mạng!");
+    }
+}
+
+// =============================
+// 12. SINH MỤC TIÊU THEO CẤP ĐỘ
+// =============================
+
+function scheduleSpawn() {
+    if (!running) return;
+
+    const delay = Math.max(
+        250,
+        900 * difficultyScale()
+    );
+
+    spawnTimeout = setTimeout(() => {
+        spawnTimeout = null;
+
+        if (!running) return;
+
+        spawnTarget();
+        scheduleSpawn();
+    }, delay);
+}
+
+// =============================
+// 13. BẮT ĐẦU TRÒ CHƠI
+// =============================
+
+function startGame() {
+    cleanupGame();
+
+    score = 0;
+    lives = 3;
+    level = 1;
+    timeLeft = GAME_DURATION;
+    running = true;
+
+    endTime = Date.now() + GAME_DURATION * 1000;
+
+    startBtn.disabled = true;
+    endBtn.disabled = false;
+
+    statusDisplay.textContent = "Bắt đầu! Click thật nhanh!";
+    updateUI();
+    updateTimer();
+
+    // Sinh ngay mục tiêu đầu tiên.
+    spawnTarget();
+    scheduleSpawn();
+
+    gameInterval = setInterval(() => {
+        if (!running) return;
+
+        timeLeft = Math.max(
+            0,
+            (endTime - Date.now()) / 1000
+        );
+
+        updateTimer();
+
+        if (timeLeft <= 0) {
+            endGame("⏰ Hết giờ!");
+        }
+    }, 100);
+}
+
+// =============================
+// 14. KẾT THÚC TRÒ CHƠI
+// =============================
+
+function endGame(message) {
+    if (!running) return;
+
+    running = false;
+
+    cleanupGame();
+
+    startBtn.disabled = false;
+    endBtn.disabled = true;
+
+    saveHighScore();
+    updateUI();
+
+    timerText.textContent = "Trò chơi đã kết thúc!";
+    timerBar.style.width = "0%";
+
+    statusDisplay.textContent =
+        message + " Điểm cuối cùng: " + score +
+        ". Nhấn CHƠI LẠI để tiếp tục.";
+}
+
+// =============================
+// 15. GÁN SỰ KIỆN NÚT
+// =============================
+
+startBtn.addEventListener("click", startGame);
+
+restartBtn.addEventListener("click", startGame);
+
+endBtn.addEventListener("click", function() {
+    endGame("Bạn đã kết thúc trò chơi.");
+});
+
+// Khởi tạo giao diện ban đầu.
+updateUI();
+updateTimer();
+</script>
+
+</body>
+</html>
